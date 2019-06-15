@@ -1,3 +1,6 @@
+#ifndef PROCESS_H
+#define PROCESS_H
+
 #include <iostream>
 
 using std::string;
@@ -25,3 +28,5 @@ public:
   void SetCPU(float _cpu) { CPU = _cpu; };
   void SetUpTime(int _uptime) { upTime = _uptime; };
 };
+
+#endif
