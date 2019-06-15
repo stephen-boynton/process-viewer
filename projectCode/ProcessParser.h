@@ -29,12 +29,16 @@ class ProcessParser
 private:
   static vector<string> filterOutNonNumbers(vector<string> v);
   static string convertIfstreamToString(ifstream i);
+  static vector<string> convertStringToVector(string s);
+  static string getPathToPidStat(string pid);
+  static vector<string> getVectorOfStatsFromPid(string pid);
+  static vector<string> getLineFromGlobalStats(int lineNum);
 
 public:
   static string getCmd(string pid);
   static vector<string> getPidList();
   static string getVmSize(string pid);
-  // static string getCpuPercent(string pid);
+  static string getCpuPercent(string pid);
   // static long int getSysUpTime();
   // static string getProcUpTime(string pid);
   // static string getProcUser(string pid);
@@ -57,20 +61,50 @@ vector<string> ProcessParser::filterOutNonNumbers(vector<string> v)
   onlyNumbers.resize(distance(onlyNumbers.begin(), it));
   return onlyNumbers;
 }
-// implementation based on allocation of memory upfront example shown here:
+// implementation based on example shown here:
 // https://stackoverflow.com/questions/2602013/read-whole-ascii-file-into-c-stdstring
 string ProcessParser::convertIfstreamToString(ifstream i)
 {
   string str;
-
   i.seekg(0, ios::end);
-  str.reserve(i.tellg());
   i.seekg(0, ios::beg);
 
   str.assign((istreambuf_iterator<char>(i)),
              istreambuf_iterator<char>());
+
   return str;
 }
+
+// based on this implementation
+// https://stackoverflow.com/questions/5607589/right-way-to-split-an-stdstring-into-a-vectorstring
+vector<string> ProcessParser::convertStringToVector(string s)
+{
+  stringstream ss(s);
+  istream_iterator<string> begin(ss);
+  istream_iterator<string> end;
+  vector<string> vectorOfStrings(begin, end);
+  return vectorOfStrings;
+};
+
+string ProcessParser::getPathToPidStat(string pid)
+{
+  return Path::basePath() + pid + "/" + Path::statPath();
+}
+
+vector<string> ProcessParser::getVectorOfStatsFromPid(string pid)
+{
+  string pathToStat = ProcessParser::getPathToPidStat(pid);
+  string statsString = ProcessParser::convertIfstreamToString(Util::getStream(pathToStat));
+  return ProcessParser::convertStringToVector(statsString);
+}
+
+vector<string> ProcessParser::getLineFromGlobalStats(int lineNum)
+{
+  ifstream stats = Util::getStream(Path::basePath() + Path::statPath());
+  string line;
+  getline(stats, line);
+  return ProcessParser::convertStringToVector(line);
+};
 
 // ==================================
 //  PUBLIC METHODS
@@ -91,7 +125,25 @@ vector<string> ProcessParser::getPidList()
 
 string ProcessParser::getVmSize(string pid)
 {
-  return ProcessParser::convertIfstreamToString(Util::getStream(Path::basePath() + Path::memInfoPath()));
+  vector<string> statsVector = ProcessParser::getVectorOfStatsFromPid(pid);
+  return statsVector.at(22);
+};
+
+string ProcessParser::getCpuPercent(string pid)
+{
+  vector<string> processStatsVector = ProcessParser::getVectorOfStatsFromPid(pid);
+  vector<string> globalStatsVector = ProcessParser::getLineFromGlobalStats();
+  int total_cpu = 0;
+  for (auto s : globalStatsVector)
+  {
+    if (s == "cpu")
+    {
+      continue;
+    }
+    cout << s << endl;
+    total_cpu += stoi(s);
+  }
+  return "0";
 };
 
 #endif
