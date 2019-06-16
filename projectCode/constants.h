@@ -49,6 +49,10 @@ public:
   {
     return "version";
   }
+  static string etcPasswdPath()
+  {
+    return "/etc/passwd";
+  }
 };
 
 #endif

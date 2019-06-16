@@ -3,7 +3,7 @@
 
 int main(int argc, char const *argv[])
 {
-  string cmd = ProcessParser::getCpuPercent("1");
+  string cmd = ProcessParser::getProcUser("1");
   cout << cmd << endl;
   return 0;
 }

@@ -30,13 +30,17 @@ private:
   static const int VIRTUAL_MEM_SIZE_LOCATION = 22;
   static const int UTIME_LOCATION = 13;
   static const int CSTIME_LOCATION = 16;
+  static const int UUID_LOCATION = 8;
 
   static string getPathToPidStat(string pid);
-  static ifstream &getStatsFromPid(string pid);
-  static ifstream &getGlobalStats();
-  static vector<ifstream &> getGlobalAndPidStats(string pid);
-  static vector<int> getPidTime(vector<string> v);
-  static float calculateTimeFromVector(vector<string> times);
+  static string getPathToPidStatus(string pid);
+  static vector<string> getStatsFromPid(string pid);
+  static string getLineFromGlobalStats(int line);
+  static string getLineFromPidStatus(string pid, int line);
+  static vector<string> getPidTime(vector<string> v);
+  static long int calculateTimeFromVector(vector<string> times);
+  static string parseUserListForUserName(string uuid);
+  static string getSysVersion();
 
 public:
   static string getCmd(string pid);
@@ -44,15 +48,15 @@ public:
   static string getVmSize(string pid);
   static string getCpuPercent(string pid);
   static long int getSysUpTime();
-  static string getProcUpTime(string pid);
-  // static string getProcUser(string pid);
+  static long int getProcUpTime(string pid);
+  static string getProcUser(string pid);
   // static vector<string> getSysCpuPercent(string coreNumber = "");
   // static float getSysRamPercent();
   // static string getSysKernelVersion();
-  // static int getTotalThreads();
-  // static int getTotalNumberOfProcesses();
-  // static int getNumberOfRunningProcesses();
-  // static string getOsName();
+  static int getTotalThreads();
+  static int getTotalNumberOfProcesses();
+  static int getNumberOfRunningProcesses();
+  static string getOsName();
   // static string printCpuStats(vector<string> values1, vector<string> values2);
 };
 // ==================================
@@ -64,47 +68,87 @@ string ProcessParser::getPathToPidStat(string pid)
   return Path::basePath() + pid + "/" + Path::statPath();
 }
 
-ifstream &ProcessParser::getStatsFromPid(string pid)
+string ProcessParser::getPathToPidStatus(string pid)
 {
-  return Util::getStream(ProcessParser::getPathToPidStat(pid));
+  return Path::basePath() + pid + Path::statusPath();
 }
 
-ifstream &ProcessParser::getGlobalStats()
+vector<string> ProcessParser::getStatsFromPid(string pid)
 {
-  return Util::getStream(Path::basePath() + Path::statPath());
+  ifstream stats = Util::getStream(ProcessParser::getPathToPidStat(pid));
+  return Util::convertIfstreamToVector(stats);
+}
+
+string ProcessParser::getLineFromGlobalStats(int line)
+{
+  ifstream stats = Util::getStream(Path::basePath() + Path::statPath());
+  return Util::getLineFromIfstream(stats, line);
 };
 
-vector<ifstream &> ProcessParser::getGlobalAndPidStats(string pid)
+string ProcessParser::getLineFromPidStatus(string pid, int line)
 {
-  vector<ifstream &> ifs{};
-  ifs.push_back(ProcessParser::getStatsFromPid(pid));
-  ifs.push_back(ProcessParser::getGlobalStats());
-  return ifs;
-}
+  ifstream stats = Util::getStream(ProcessParser::getPathToPidStatus(pid));
+  return Util::getLineFromIfstream(stats, line);
+};
 
-vector<int> ProcessParser::getPidTime(vector<string> v)
+vector<string> ProcessParser::getPidTime(vector<string> v)
 {
-  vector<int> timeVector{};
   auto start = v.begin() + UTIME_LOCATION;
   auto end = v.begin() + CSTIME_LOCATION;
-  timeVector.push_back(stoi(v.at(UTIME_LOCATION)));
-  timeVector.push_back(stoi(v.at(STIME_LOCATION)));
-
-  vector<T>::const_iterator first = myVec.begin() + 100000;
-  vector<T>::const_iterator last = myVec.begin() + 101000;
-  vector<T> newVec(first, last);
-
+  vector<string> timeVector(start, end + 1);
   return timeVector;
 }
 
-float ProcessParser::calculateTimeFromVector(vector<string> time)
+long int ProcessParser::calculateTimeFromVector(vector<string> time)
 {
-  float total = 0;
+  long int total = 0;
   for (auto s : time)
   {
-    total += stof(s);
+    total += stoi(s);
   }
   return total;
+}
+
+string ProcessParser::parseUserListForUserName(string uuid)
+{
+  string line;
+  ifstream userlistStream = Util::getStream(Path::etcPasswdPath());
+  size_t found;
+
+  vector<string> lines{};
+  while (getline(userlistStream, line))
+  {
+    lines.push_back(line);
+  }
+
+  vector<vector<string>> userlist{};
+  for (string l : lines)
+  {
+    string delimeter = ":";
+    vector<string> user{};
+    size_t pos = 0;
+    while ((pos = l.find(delimeter)) != string::npos)
+    {
+      string sub = l.substr(0, pos);
+      user.emplace_back(sub);
+      l.erase(0, pos + 1);
+    }
+    userlist.emplace_back(user);
+  }
+
+  for (auto usr : userlist)
+  {
+    if (usr.at(2) == uuid)
+    {
+      return usr.at(0);
+    }
+  }
+};
+
+string ProcessParser::getSysVersion()
+{
+  ifstream version = Util::getStream(Path::basePath() + Path::versionPath());
+  return Util::convertIfstreamToString(version);
 }
 
 // ==================================
@@ -113,7 +157,8 @@ float ProcessParser::calculateTimeFromVector(vector<string> time)
 
 string ProcessParser::getCmd(string pid)
 {
-  return Util::convertIfstreamToString(Util::getStream(Path::basePath() + pid + Path::cmdPath()));
+  ifstream cmd = Util::getStream(Path::basePath() + pid + Path::cmdPath());
+  return Util::convertIfstreamToString(cmd);
 };
 
 vector<string> ProcessParser::getPidList()
@@ -126,31 +171,12 @@ vector<string> ProcessParser::getPidList()
 
 string ProcessParser::getVmSize(string pid)
 {
-  vector<string> stats = Util::convertIfstreamToVector(ProcessParser::getStatsFromPid(pid));
+  vector<string> stats = ProcessParser::getStatsFromPid(pid);
   return stats.at(VIRTUAL_MEM_SIZE_LOCATION);
 };
 
 string ProcessParser::getCpuPercent(string pid)
 {
-  vector<ifstream &> pidAndGlobalStatsStream = ProcessParser::getGlobalAndPidStats(pid);
-  const chrono::milliseconds TIME_DELAY_IN_MILLI(500);
-  this_thread::sleep_for(TIME_DELAY_IN_MILLI);
-  vector<ifstream &> pidAndGlobalStatsStream2 = ProcessParser::getGlobalAndPidStats(pid);
-
-  vector<string> processStatsVector = Util::convertIfstreamToVector(pidAndGlobalStatsStream.at(0));
-  vector<string> globalStatsVector = Util::convertStringToVector(Util::getLineFromIfstream(pidAndGlobalStatsStream.at(1), 0));
-
-  vector<string> processStatsVector2 = Util::convertIfstreamToVector(pidAndGlobalStatsStream2.at(0));
-  vector<string> globalStatsVector2 = Util::convertStringToVector(Util::getLineFromIfstream(pidAndGlobalStatsStream2.at(1), 0));
-
-  vector<int> baseTime = ProcessParser::getPidTime(processStatsVector);
-  vector<int> updatedTime = ProcessParser::getPidTime(processStatsVector2);
-
-  globalStatsVector.erase(globalStatsVector.begin());
-  globalStatsVector2.erase(globalStatsVector2.begin());
-  int cpuTime = ProcessParser::calculateTimeFromVector(globalStatsVector);
-  int cpuTime2 = ProcessParser::calculateTimeFromVector(globalStatsVector2);
-
   return "0";
 };
 
@@ -179,8 +205,52 @@ string ProcessParser::getCpuPercent(string pid)
 //   return to_string(result);
 // }
 
-static long int getSysUpTime(){
-
+long int ProcessParser::getSysUpTime()
+{
+  string stats = ProcessParser::getLineFromGlobalStats(0);
+  vector<string> timeVector = Util::convertStringToVector(stats);
+  timeVector.erase(timeVector.begin());
+  return ProcessParser::calculateTimeFromVector(timeVector);
 };
+
+long int ProcessParser::getProcUpTime(string pid)
+{
+  vector<string> stats = ProcessParser::getStatsFromPid(pid);
+  vector<string> timeVector = ProcessParser::getPidTime(stats);
+  return ProcessParser::calculateTimeFromVector(timeVector);
+}
+
+string ProcessParser::getProcUser(string pid)
+{
+  string uuidLine = ProcessParser::getLineFromPidStatus(pid, UUID_LOCATION);
+  cout << uuidLine << endl;
+  vector<string> uuidVector = Util::convertStringToVector(uuidLine);
+  string uuid = uuidVector.at(1);
+  return ProcessParser::parseUserListForUserName(uuid);
+}
+
+int ProcessParser::getTotalThreads()
+{
+  return thread::hardware_concurrency();
+};
+
+int ProcessParser::getTotalNumberOfProcesses()
+{
+  string processes = ProcessParser::getLineFromGlobalStats(8);
+  vector<string> processVector = Util::convertStringToVector(processes);
+  return stoi(processVector.at(1));
+};
+
+int ProcessParser::getNumberOfRunningProcesses()
+{
+  string running = ProcessParser::getLineFromGlobalStats(9);
+  vector<string> processVector = Util::convertStringToVector(running);
+  return stoi(processVector.at(1));
+};
+
+string ProcessParser::getOsName()
+{
+  return ProcessParser::getSysVersion();
+}
 
 #endif

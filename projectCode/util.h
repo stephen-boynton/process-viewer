@@ -15,7 +15,7 @@ class Util
 public:
   static string convertToTime(long int input_seconds);
   static string getProgressBar(string percent);
-  static ifstream &getStream(string path);
+  static ifstream getStream(string path);
   static void getFilesFromDirectory(string dir, vector<string> &files);
   static bool is_number(const std::string &s);
   static string getLineFromIfstream(ifstream &ifs, int lineNum);
@@ -61,7 +61,7 @@ string Util::getProgressBar(string percent)
 }
 
 // wrapper for creating streams
-ifstream &Util::getStream(string path)
+ifstream Util::getStream(string path)
 {
   ifstream stream(path);
   if (!stream)
@@ -101,7 +101,9 @@ string Util::getLineFromIfstream(ifstream &ifs, int lineNum)
 {
   string line;
   for (int i = 0; i <= lineNum; i++)
+  {
     getline(ifs, line);
+  }
 
   return line;
 }
@@ -138,7 +140,8 @@ vector<string> Util::convertStringToVector(string s)
   return vectorOfStrings;
 };
 
-vector<string> convertIfstreamToVector(ifstream i)
+vector<string> Util::convertIfstreamToVector(ifstream &i)
 {
-  return Util::convertStringToVector(Util::convertIfstreamToString(i));
+  string str = Util::convertIfstreamToString(i);
+  return Util::convertStringToVector(str);
 }
