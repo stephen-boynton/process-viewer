@@ -15,9 +15,14 @@ class Util
 public:
   static string convertToTime(long int input_seconds);
   static string getProgressBar(string percent);
-  static ifstream getStream(string path);
+  static ifstream &getStream(string path);
   static void getFilesFromDirectory(string dir, vector<string> &files);
   static bool is_number(const std::string &s);
+  static string getLineFromIfstream(ifstream &ifs, int lineNum);
+  static vector<string> filterOutNonNumbers(vector<string> v);
+  static string convertIfstreamToString(ifstream &i);
+  static vector<string> convertStringToVector(string s);
+  static vector<string> convertIfstreamToVector(ifstream &i);
 };
 
 string Util::convertToTime(long int input_seconds)
@@ -56,7 +61,7 @@ string Util::getProgressBar(string percent)
 }
 
 // wrapper for creating streams
-ifstream Util::getStream(string path)
+ifstream &Util::getStream(string path)
 {
   ifstream stream(path);
   if (!stream)
@@ -90,4 +95,50 @@ bool Util::is_number(const std::string &s)
   while (it != s.end() && std::isdigit(*it))
     ++it;
   return !s.empty() && it == s.end();
+}
+
+string Util::getLineFromIfstream(ifstream &ifs, int lineNum)
+{
+  string line;
+  for (int i = 0; i <= lineNum; i++)
+    getline(ifs, line);
+
+  return line;
+}
+
+vector<string> Util::filterOutNonNumbers(vector<string> v)
+{
+  vector<string> onlyNumbers(v.size());
+  auto it = copy_if(v.begin(), v.end(), onlyNumbers.begin(), [](string f) { return Util::is_number(f); });
+  onlyNumbers.resize(distance(onlyNumbers.begin(), it));
+  return onlyNumbers;
+}
+// implementation based on example shown here:
+// https://stackoverflow.com/questions/2602013/read-whole-ascii-file-into-c-stdstring
+string Util::convertIfstreamToString(ifstream &i)
+{
+  string str;
+  i.seekg(0, ios::end);
+  i.seekg(0, ios::beg);
+
+  str.assign((istreambuf_iterator<char>(i)),
+             istreambuf_iterator<char>());
+
+  return str;
+}
+
+// based on this implementation
+// https://stackoverflow.com/questions/5607589/right-way-to-split-an-stdstring-into-a-vectorstring
+vector<string> Util::convertStringToVector(string s)
+{
+  stringstream ss(s);
+  istream_iterator<string> begin(ss);
+  istream_iterator<string> end;
+  vector<string> vectorOfStrings(begin, end);
+  return vectorOfStrings;
+};
+
+vector<string> convertIfstreamToVector(ifstream i)
+{
+  return Util::convertStringToVector(Util::convertIfstreamToString(i));
 }
