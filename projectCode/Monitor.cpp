@@ -3,7 +3,7 @@
 
 int main(int argc, char const *argv[])
 {
-  string cmd = ProcessParser::getProcUser("1");
+  string cmd = ProcessParser::getSysKernelVersion();
   cout << cmd << endl;
   return 0;
 }

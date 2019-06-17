@@ -40,7 +40,7 @@ private:
   static vector<string> getPidTime(vector<string> v);
   static long int calculateTimeFromVector(vector<string> times);
   static string parseUserListForUserName(string uuid);
-  static string getSysVersion();
+  static vector<string> getSysVersion();
 
 public:
   static string getCmd(string pid);
@@ -52,16 +52,17 @@ public:
   static string getProcUser(string pid);
   // static vector<string> getSysCpuPercent(string coreNumber = "");
   // static float getSysRamPercent();
-  // static string getSysKernelVersion();
+  static string getSysKernelVersion();
   static int getTotalThreads();
   static int getTotalNumberOfProcesses();
   static int getNumberOfRunningProcesses();
   static string getOsName();
   // static string printCpuStats(vector<string> values1, vector<string> values2);
 };
-// ==================================
+
+// ======================================================================================================
 //  PRIVATE METHODS
-// =================================
+// =====================================================================================================
 
 string ProcessParser::getPathToPidStat(string pid)
 {
@@ -143,17 +144,20 @@ string ProcessParser::parseUserListForUserName(string uuid)
       return usr.at(0);
     }
   }
+  throw runtime_error("No user found for this process");
 };
 
-string ProcessParser::getSysVersion()
+vector<string> ProcessParser::getSysVersion()
 {
-  ifstream version = Util::getStream(Path::basePath() + Path::versionPath());
-  return Util::convertIfstreamToString(version);
+  string path = Path::basePath() + Path::versionPath();
+  cout << path << endl;
+  ifstream version = Util::getStream(path);
+  return Util::convertIfstreamToVector(version);
 }
 
-// ==================================
+// ===================================================================================================
 //  PUBLIC METHODS
-// =================================
+// ===================================================================================================
 
 string ProcessParser::getCmd(string pid)
 {
@@ -177,6 +181,8 @@ string ProcessParser::getVmSize(string pid)
 
 string ProcessParser::getCpuPercent(string pid)
 {
+  vector<string> stats = ProcessParser::getStatsFromPid(pid);
+  vector<string> procTimes = ProcessParser::getPidTime(stats);
   return "0";
 };
 
@@ -250,7 +256,14 @@ int ProcessParser::getNumberOfRunningProcesses()
 
 string ProcessParser::getOsName()
 {
-  return ProcessParser::getSysVersion();
+  vector<string> versionInfo = ProcessParser::getSysVersion();
+  return versionInfo.at(0);
+}
+
+string ProcessParser::getSysKernelVersion()
+{
+  vector<string> versionInfo = ProcessParser::getSysVersion();
+  return versionInfo.at(2);
 }
 
 #endif
