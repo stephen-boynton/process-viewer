@@ -97,6 +97,7 @@ auto ProcessParser::getPidTime(vector<string> v)
   auto start = v.begin() + UTIME_LOCATION;
   auto end = v.begin() + CSTIME_LOCATION;
   auto timeVector = vector<string>(start, end + 1);
+  timeVector.push_back(v.at(21));
   return timeVector;
 }
 
@@ -122,7 +123,7 @@ auto ProcessParser::parseUserListForUserName(string uuid)
     lines.push_back(line);
   }
 
-  vector<vector<string>> userlist{};
+  auto userlist = vector<vector<string>>{};
   for (auto l : lines)
   {
     auto delimeter = string{":"};
@@ -130,7 +131,7 @@ auto ProcessParser::parseUserListForUserName(string uuid)
     auto pos = size_t{0};
     while ((pos = l.find(delimeter)) != string::npos)
     {
-      string sub = l.substr(0, pos);
+      auto sub = l.substr(0, pos);
       user.emplace_back(sub);
       l.erase(0, pos + 1);
     }
@@ -166,7 +167,7 @@ auto ProcessParser::getCmd(string pid)
 
 auto ProcessParser::getPidList()
 {
-  auto pathToPids = string{Path::basePath()};
+  auto const pathToPids = string{Path::basePath()};
   auto files = vector<string>{};
   Util::getFilesFromDirectory(pathToPids, files);
   return Util::filterOutNonNumbers(files);
@@ -180,8 +181,10 @@ auto ProcessParser::getVmSize(string pid)
 
 auto ProcessParser::getCpuPercent(string pid)
 {
-  auto stats = vector<string>{ProcessParser::getStatsFromPid(pid)};
-  auto procTimes = vector<string>{ProcessParser::getPidTime(stats)};
+  auto stats = ProcessParser::getStatsFromPid(pid);
+  auto procTimes = ProcessParser::getPidTime(stats);
+  auto total_time = ProcessParser::calculateTimeFromVector(procTimes);
+  auto uptime = ProcessParser::getSysUpTime();
   return "0";
 };
 
