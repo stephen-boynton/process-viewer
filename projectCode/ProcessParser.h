@@ -126,7 +126,7 @@ auto ProcessParser::parseUserListForUserName(string uuid)
   auto userlist = vector<vector<string>>{};
   for (auto l : lines)
   {
-    auto delimeter = string{":"};
+    auto delimeter = ":";
     auto user = vector<string>{};
     auto pos = size_t{0};
     while ((pos = l.find(delimeter)) != string::npos)
@@ -167,11 +167,19 @@ auto ProcessParser::getCmd(string pid)
 
 auto ProcessParser::getPidList()
 {
-  auto const pathToPids = string{Path::basePath()};
+  auto const pathToPids = Path::basePath();
   auto files = vector<string>{};
   Util::getFilesFromDirectory(pathToPids, files);
   return Util::filterOutNonNumbers(files);
 }
+
+auto ProcessParser::getSysUpTime()
+{
+  auto stats = ProcessParser::getLineFromGlobalStats(0);
+  auto timeVector = Util::convertStringToVector(stats);
+  timeVector.erase(timeVector.begin());
+  return ProcessParser::calculateTimeFromVector(timeVector);
+};
 
 auto ProcessParser::getVmSize(string pid)
 {
@@ -183,49 +191,24 @@ auto ProcessParser::getCpuPercent(string pid)
 {
   auto stats = ProcessParser::getStatsFromPid(pid);
   auto procTimes = ProcessParser::getPidTime(stats);
-  auto total_time = ProcessParser::calculateTimeFromVector(procTimes);
+
+  auto startTime = stof(procTimes.back());
+  procTimes.pop_back();
+
+  auto totalTime = ProcessParser::calculateTimeFromVector(procTimes);
   auto uptime = ProcessParser::getSysUpTime();
-  return "0";
-};
-
-// string ProcessParser::getCpuPercent(string pid)
-// {
-//   string line;
-//   string value;
-//   float result;
-//   ifstream stream = Util::getStream((Path::basePath() + pid + "/" + Path::statPath()));
-//   getline(stream, line);
-//   string str = line;
-//   istringstream buf(str);
-//   istream_iterator<string> beg(buf), end;
-//   auto values(beg, end); // done!
-//   // acquiring relevant times for calculation of active occupation of CPU for selected process
-//   float utime = stof(ProcessParser::getProcUpTime(pid));
-//   float stime = stof(values[14]);
-//   float cutime = stof(values[15]);
-//   float cstime = stof(values[16]);
-//   float starttime = stof(values[21]);
-//   float uptime = ProcessParser::getSysUpTime();
-//   float freq = sysconf(_SC_CLK_TCK);
-//   float total_time = utime + stime + cutime + cstime;
-//   float seconds = uptime - (starttime / freq);
-//   result = 100.0 * ((total_time / freq) / seconds);
-//   return to_string(result);
-// }
-
-auto ProcessParser::getSysUpTime()
-{
-  auto stats = ProcessParser::getLineFromGlobalStats(0);
-  auto timeVector = Util::convertStringToVector(stats);
-  timeVector.erase(timeVector.begin());
-  return ProcessParser::calculateTimeFromVector(timeVector);
+  // attempting to only have explicit conversions, not implicit
+  auto freq = static_cast<float>(sysconf(_SC_CLK_TCK));
+  auto seconds = static_cast<float>(uptime - (startTime / freq));
+  auto result = static_cast<float>(100.0 * ((totalTime / freq) / seconds));
+  return to_string(result);
 };
 
 auto ProcessParser::getProcUpTime(string pid)
 {
   auto stats = ProcessParser::getStatsFromPid(pid);
   auto timeVector = ProcessParser::getPidTime(stats);
-  return ProcessParser::calculateTimeFromVector(timeVector);
+  return timeVector.at(0);
 }
 
 auto ProcessParser::getProcUser(string pid)
@@ -257,13 +240,13 @@ auto ProcessParser::getNumberOfRunningProcesses()
 
 auto ProcessParser::getOsName()
 {
-  auto versionInfo = vector<string>{ProcessParser::getSysVersion()};
+  auto versionInfo = ProcessParser::getSysVersion();
   return versionInfo.at(0);
 }
 
 auto ProcessParser::getSysKernelVersion()
 {
-  auto versionInfo = vector<string>{ProcessParser::getSysVersion()};
+  auto versionInfo = ProcessParser::getSysVersion();
   return versionInfo.at(2);
 }
 
