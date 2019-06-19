@@ -50,14 +50,14 @@ public:
   static auto getSysUpTime();
   static auto getProcUpTime(string pid);
   static auto getProcUser(string pid);
-  // static auto getSysCpuPercent(string coreNumber = "");
-  // static float getSysRamPercent();
+  static auto getSysCpuPercent(string coreNumber = "");
+  static auto getSysRamPercent();
   static auto getSysKernelVersion();
   static auto getTotalThreads();
   static auto getTotalNumberOfProcesses();
   static auto getNumberOfRunningProcesses();
   static auto getOsName();
-  // static string printCpuStats(auto values1, auto values2);
+  static auto printCpuStats(vector<string> values1, vector<string> values2);
 };
 
 // ======================================================================================================
@@ -82,12 +82,14 @@ auto ProcessParser::getStatsFromPid(string pid)
 
 auto ProcessParser::getLineFromGlobalStats(int line)
 {
+  //TODO: update to get line by searchvalue aka starting string, like they do in the test
   auto stats = Util::getStream(Path::basePath() + Path::statPath());
   return Util::getLineFromIfstream(stats, line);
 };
 
 auto ProcessParser::getLineFromPidStatus(string pid, int line)
 {
+  //TODO: is this also relative to each cp
   auto stats = Util::getStream(ProcessParser::getPathToPidStatus(pid));
   return Util::getLineFromIfstream(stats, line);
 };
@@ -184,7 +186,8 @@ auto ProcessParser::getSysUpTime()
 auto ProcessParser::getVmSize(string pid)
 {
   auto stats = ProcessParser::getStatsFromPid(pid);
-  return stats.at(VIRTUAL_MEM_SIZE_LOCATION);
+  auto vmSizeInBytes = stof(stats.at(VIRTUAL_MEM_SIZE_LOCATION));
+  return to_string((vmSizeInBytes / 1e9));
 };
 
 auto ProcessParser::getCpuPercent(string pid)
@@ -249,5 +252,108 @@ auto ProcessParser::getSysKernelVersion()
   auto versionInfo = ProcessParser::getSysVersion();
   return versionInfo.at(2);
 }
+
+auto ProcessParser::getSysCpuPercent(string coreNumber)
+{
+  // TODO:
+  //   // It is possible to use this method for selection of data for overall cpu or every core.
+  //   // when nothing is passed "cpu" line is read
+  //   // when, for example "0" is passed  -> "cpu0" -> data for first core is read
+  //   string line;
+  //   string name = "cpu" + coreNumber;
+  //   ifstream stream = Util::getStream((Path::basePath() + Path::statPath()));
+  //   while (std::getline(stream, line))
+  //   {
+  //     if (line.compare(0, name.size(), name) == 0)
+  //     {
+  //       istringstream buf(line);
+  //       istream_iterator<string> beg(buf), end;
+  //       vector<string> values(beg, end);
+  //       // set of cpu data active and idle times;
+  //       return values;
+  //     }
+  //   }
+  //   return (vector<string>());
+  // }
+
+  // float get_sys_active_cpu_time(vector<string> values)
+  // {
+  //   return (stof(values[S_USER]) +
+  //           stof(values[S_NICE]) +
+  //           stof(values[S_SYSTEM]) +
+  //           stof(values[S_IRQ]) +
+  //           stof(values[S_SOFTIRQ]) +
+  //           stof(values[S_STEAL]) +
+  //           stof(values[S_GUEST]) +
+  //           stof(values[S_GUEST_NICE]));
+  // }
+
+  // float get_sys_idle_cpu_time(vector<string> values)
+  // {
+  //   return (stof(values[S_IDLE]) + stof(values[S_IOWAIT]));
+  // }
+}
+
+auto ProcessParser::getSysRamPercent()
+{
+  // TODO:
+  // float ProcessParser::getSysRamPercent()
+  // {
+  //   string line;
+  //   string name1 = "MemAvailable:";
+  //   string name2 = "MemFree:";
+  //   string name3 = "Buffers:";
+
+  //   string value;
+  //   int result;
+  //   ifstream stream = Util::getStream((Path::basePath() + Path::memInfoPath()));
+  //   float total_mem = 0;
+  //   float free_mem = 0;
+  //   float buffers = 0;
+  //   while (std::getline(stream, line))
+  //   {
+  //     if (total_mem != 0 && free_mem != 0)
+  //       break;
+  //     if (line.compare(0, name1.size(), name1) == 0)
+  //     {
+  //       istringstream buf(line);
+  //       istream_iterator<string> beg(buf), end;
+  //       vector<string> values(beg, end);
+  //       total_mem = stof(values[1]);
+  //     }
+  //     if (line.compare(0, name2.size(), name2) == 0)
+  //     {
+  //       istringstream buf(line);
+  //       istream_iterator<string> beg(buf), end;
+  //       vector<string> values(beg, end);
+  //       free_mem = stof(values[1]);
+  //     }
+  //     if (line.compare(0, name3.size(), name3) == 0)
+  //     {
+  //       istringstream buf(line);
+  //       istream_iterator<string> beg(buf), end;
+  //       vector<string> values(beg, end);
+  //       buffers = stof(values[1]);
+  //     }
+  //   }
+  //   //calculating usage:
+  //   return float(100.0 * (1 - (free_mem / (total_mem - buffers))));
+  // }
+}
+
+auto ProcessParser::printCpuStats(vector<string> values1, vector<string> values2){
+    //     string ProcessParser::printCpuStats(vector<string> values1, vector<string> values2){
+    //         /*
+    // Because CPU stats can be calculated only if you take measures in two different time,
+    // this function has two parameters: two vectors of relevant values.
+    // We use a formula to calculate overall activity of processor.
+    // */
+    //         float activeTime = getSysActiveCpuTime(values2) - getSysActiveCpuTime(values1);
+    // float idleTime = getSysIdleCpuTime(values2) - getSysIdleCpuTime(values1);
+    // float totalTime = activeTime + idleTime;
+    // float result = 100.0 * (activeTime / totalTime);
+    // return to_string(result);
+    // }
+};
 
 #endif
