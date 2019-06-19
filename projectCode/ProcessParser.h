@@ -52,16 +52,17 @@ public:
   static auto getProcUser(string pid);
   // static auto getSysCpuPercent(string coreNumber = "");
   // static float getSysRamPercent();
-  // static string getSysKernelVersion();
+  static auto getSysKernelVersion();
   static auto getTotalThreads();
   static auto getTotalNumberOfProcesses();
   static auto getNumberOfRunningProcesses();
   static auto getOsName();
   // static string printCpuStats(auto values1, auto values2);
 };
-// ==================================
+
+// ======================================================================================================
 //  PRIVATE METHODS
-// =================================
+// =====================================================================================================
 
 auto ProcessParser::getPathToPidStat(string pid)
 {
@@ -111,22 +112,22 @@ auto ProcessParser::calculateTimeFromVector(vector<string> time)
 
 auto ProcessParser::parseUserListForUserName(string uuid)
 {
-  string line;
-  ifstream userlistStream = Util::getStream(Path::etcPasswdPath());
-  size_t found;
+  auto line = string{};
+  auto userlistStream = Util::getStream(Path::etcPasswdPath());
+  auto found = size_t{};
 
-  vector<string> lines{};
+  auto lines = vector<string>{};
   while (getline(userlistStream, line))
   {
     lines.push_back(line);
   }
 
   vector<vector<string>> userlist{};
-  for (string l : lines)
+  for (auto l : lines)
   {
-    string delimeter = ":";
-    vector<string> user{};
-    size_t pos = 0;
+    auto delimeter = string{":"};
+    auto user = vector<string>{};
+    auto pos = size_t{0};
     while ((pos = l.find(delimeter)) != string::npos)
     {
       string sub = l.substr(0, pos);
@@ -143,17 +144,19 @@ auto ProcessParser::parseUserListForUserName(string uuid)
       return usr.at(0);
     }
   }
+  throw runtime_error("No user found for this process");
 };
 
 auto ProcessParser::getSysVersion()
 {
-  auto version = Util::getStream(Path::basePath() + Path::versionPath());
-  return Util::convertIfstreamToString(version);
+  auto path = Path::basePath() + Path::versionPath();
+  auto version = Util::getStream(path);
+  return Util::convertIfstreamToVector(version);
 }
 
-// ==================================
+// ===================================================================================================
 //  PUBLIC METHODS
-// =================================
+// ===================================================================================================
 
 auto ProcessParser::getCmd(string pid)
 {
@@ -163,8 +166,8 @@ auto ProcessParser::getCmd(string pid)
 
 auto ProcessParser::getPidList()
 {
-  const string pathToPids = Path::basePath();
-  vector<string> files{};
+  auto pathToPids = string{Path::basePath()};
+  auto files = vector<string>{};
   Util::getFilesFromDirectory(pathToPids, files);
   return Util::filterOutNonNumbers(files);
 }
@@ -177,6 +180,8 @@ auto ProcessParser::getVmSize(string pid)
 
 auto ProcessParser::getCpuPercent(string pid)
 {
+  auto stats = vector<string>{ProcessParser::getStatsFromPid(pid)};
+  auto procTimes = vector<string>{ProcessParser::getPidTime(stats)};
   return "0";
 };
 
@@ -223,7 +228,6 @@ auto ProcessParser::getProcUpTime(string pid)
 auto ProcessParser::getProcUser(string pid)
 {
   auto uuidLine = ProcessParser::getLineFromPidStatus(pid, UUID_LOCATION);
-  cout << uuidLine << endl;
   auto uuidVector = Util::convertStringToVector(uuidLine);
   auto uuid = uuidVector.at(1);
   return ProcessParser::parseUserListForUserName(uuid);
@@ -250,7 +254,14 @@ auto ProcessParser::getNumberOfRunningProcesses()
 
 auto ProcessParser::getOsName()
 {
-  return ProcessParser::getSysVersion();
+  auto versionInfo = vector<string>{ProcessParser::getSysVersion()};
+  return versionInfo.at(0);
+}
+
+auto ProcessParser::getSysKernelVersion()
+{
+  auto versionInfo = vector<string>{ProcessParser::getSysVersion()};
+  return versionInfo.at(2);
 }
 
 #endif
