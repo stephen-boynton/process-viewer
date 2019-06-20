@@ -41,6 +41,7 @@ private:
   static auto calculateTimeFromVector(vector<string> times);
   static auto parseUserListForUserName(string uuid);
   static auto getSysVersion();
+  static auto getlineVectorFromStatusByInitalWord(string word);
 
 public:
   static auto getCmd(string pid);
@@ -157,6 +158,21 @@ auto ProcessParser::getSysVersion()
   return Util::convertIfstreamToVector(version);
 }
 
+auto ProcessParser::getlineVectorFromStatusByInitalWord(string word)
+{
+  auto stats = Util::getStream(Path::basePath() + Path::statPath());
+  auto line = string{};
+  auto lines = vector<vector<string>>{};
+  while (getline(stats, line))
+    lines.push_back(Util::convertStringToVector(line));
+
+  for (auto l : lines)
+    if (l.at(0) == word)
+      return l;
+
+  throw runtime_error("Unable to find line using provided word in global stats");
+};
+
 // ===================================================================================================
 //  PUBLIC METHODS
 // ===================================================================================================
@@ -229,8 +245,7 @@ auto ProcessParser::getTotalThreads()
 
 auto ProcessParser::getTotalNumberOfProcesses()
 {
-  auto processes = ProcessParser::getLineFromGlobalStats(8);
-  auto processVector = Util::convertStringToVector(processes);
+  auto processVector = ProcessParser::getlineVectorFromStatusByInitalWord("processes");
   return stoi(processVector.at(1));
 };
 

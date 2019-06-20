@@ -3,7 +3,7 @@
 
 int main(int argc, char const *argv[])
 {
-  string cmd = ProcessParser::getSysKernelVersion();
+  auto cmd = ProcessParser::getTotalNumberOfProcesses();
   cout << cmd << endl;
   return 0;
 }
