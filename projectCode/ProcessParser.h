@@ -30,18 +30,19 @@ private:
   static const int VIRTUAL_MEM_SIZE_LOCATION = 22;
   static const int UTIME_LOCATION = 13;
   static const int CSTIME_LOCATION = 16;
-  static const int UUID_LOCATION = 8;
+  static const int IDLE_TIME = 3;
+  static const int IO_WAIT_TIME = 4;
 
   static auto getPathToPidStat(string pid);
   static auto getPathToPidStatus(string pid);
   static auto getStatsFromPid(string pid);
-  static auto getLineFromGlobalStats(int line);
   static auto getLineFromPidStatus(string pid, int line);
   static auto getPidTime(vector<string> v);
   static auto calculateTimeFromVector(vector<string> times);
   static auto parseUserListForUserName(string uuid);
   static auto getSysVersion();
-  static auto getlineVectorFromStatusByInitalWord(string word);
+  static auto getSysActiveCpuTime(vector<string> times);
+  static auto getSysIdleCpuTime(vector<string> times);
 
 public:
   static auto getCmd(string pid);
@@ -81,20 +82,6 @@ auto ProcessParser::getStatsFromPid(string pid)
   return Util::convertIfstreamToVector(stats);
 }
 
-auto ProcessParser::getLineFromGlobalStats(int line)
-{
-  //TODO: update to get line by searchvalue aka starting string, like they do in the test
-  auto stats = Util::getStream(Path::basePath() + Path::statPath());
-  return Util::getLineFromIfstream(stats, line);
-};
-
-auto ProcessParser::getLineFromPidStatus(string pid, int line)
-{
-  //TODO: is this also relative to each cp
-  auto stats = Util::getStream(ProcessParser::getPathToPidStatus(pid));
-  return Util::getLineFromIfstream(stats, line);
-};
-
 auto ProcessParser::getPidTime(vector<string> v)
 {
   auto start = v.begin() + UTIME_LOCATION;
@@ -109,7 +96,7 @@ auto ProcessParser::calculateTimeFromVector(vector<string> time)
   auto total = 0;
   for (auto s : time)
   {
-    total += stoi(s);
+    total += stof(s);
   }
   return total;
 }
@@ -158,19 +145,18 @@ auto ProcessParser::getSysVersion()
   return Util::convertIfstreamToVector(version);
 }
 
-auto ProcessParser::getlineVectorFromStatusByInitalWord(string word)
+auto ProcessParser::getSysActiveCpuTime(vector<string> times)
 {
-  auto stats = Util::getStream(Path::basePath() + Path::statPath());
-  auto line = string{};
-  auto lines = vector<vector<string>>{};
-  while (getline(stats, line))
-    lines.push_back(Util::convertStringToVector(line));
+  times.erase(times.begin() + IDLE_TIME);
+  times.erase(times.begin() + IO_WAIT_TIME);
+  return ProcessParser::calculateTimeFromVector(times);
+};
 
-  for (auto l : lines)
-    if (l.at(0) == word)
-      return l;
-
-  throw runtime_error("Unable to find line using provided word in global stats");
+auto ProcessParser::getSysIdleCpuTime(vector<string> times)
+{
+  auto idleTime = stof(times.at(IDLE_TIME));
+  auto ioWaitTime = stof(times.at(IO_WAIT_TIME));
+  return idleTime + ioWaitTime;
 };
 
 // ===================================================================================================
@@ -193,8 +179,8 @@ auto ProcessParser::getPidList()
 
 auto ProcessParser::getSysUpTime()
 {
-  auto stats = ProcessParser::getLineFromGlobalStats(0);
-  auto timeVector = Util::convertStringToVector(stats);
+  auto stats = Util::getStream(Path::basePath() + Path::statPath());
+  auto timeVector = Util::getVectorOfLineWithMatchingFirstWord(stats, "cpu");
   timeVector.erase(timeVector.begin());
   return ProcessParser::calculateTimeFromVector(timeVector);
 };
@@ -232,8 +218,8 @@ auto ProcessParser::getProcUpTime(string pid)
 
 auto ProcessParser::getProcUser(string pid)
 {
-  auto uuidLine = ProcessParser::getLineFromPidStatus(pid, UUID_LOCATION);
-  auto uuidVector = Util::convertStringToVector(uuidLine);
+  auto stats = Util::getStream(ProcessParser::getPathToPidStatus(pid));
+  auto uuidVector = Util::getVectorOfLineWithMatchingFirstWord(stats, "Uid:");
   auto uuid = uuidVector.at(1);
   return ProcessParser::parseUserListForUserName(uuid);
 }
@@ -245,14 +231,15 @@ auto ProcessParser::getTotalThreads()
 
 auto ProcessParser::getTotalNumberOfProcesses()
 {
-  auto processVector = ProcessParser::getlineVectorFromStatusByInitalWord("processes");
-  return stoi(processVector.at(1));
+  auto stats = Util::getStream(Path::basePath() + Path::statPath());
+  auto processVector = Util::getVectorOfLineWithMatchingFirstWord(stats, "procs");
+  return stoi(processVector.at(0));
 };
 
 auto ProcessParser::getNumberOfRunningProcesses()
 {
-  auto running = ProcessParser::getLineFromGlobalStats(9);
-  auto processVector = Util::convertStringToVector(running);
+  auto stats = Util::getStream(Path::basePath() + Path::statPath());
+  auto processVector = Util::getVectorOfLineWithMatchingFirstWord(stats, "procs_running");
   return stoi(processVector.at(1));
 };
 
@@ -270,105 +257,36 @@ auto ProcessParser::getSysKernelVersion()
 
 auto ProcessParser::getSysCpuPercent(string coreNumber)
 {
-  // TODO:
-  //   // It is possible to use this method for selection of data for overall cpu or every core.
-  //   // when nothing is passed "cpu" line is read
-  //   // when, for example "0" is passed  -> "cpu0" -> data for first core is read
-  //   string line;
-  //   string name = "cpu" + coreNumber;
-  //   ifstream stream = Util::getStream((Path::basePath() + Path::statPath()));
-  //   while (std::getline(stream, line))
-  //   {
-  //     if (line.compare(0, name.size(), name) == 0)
-  //     {
-  //       istringstream buf(line);
-  //       istream_iterator<string> beg(buf), end;
-  //       vector<string> values(beg, end);
-  //       // set of cpu data active and idle times;
-  //       return values;
-  //     }
-  //   }
-  //   return (vector<string>());
-  // }
-
-  // float get_sys_active_cpu_time(vector<string> values)
-  // {
-  //   return (stof(values[S_USER]) +
-  //           stof(values[S_NICE]) +
-  //           stof(values[S_SYSTEM]) +
-  //           stof(values[S_IRQ]) +
-  //           stof(values[S_SOFTIRQ]) +
-  //           stof(values[S_STEAL]) +
-  //           stof(values[S_GUEST]) +
-  //           stof(values[S_GUEST_NICE]));
-  // }
-
-  // float get_sys_idle_cpu_time(vector<string> values)
-  // {
-  //   return (stof(values[S_IDLE]) + stof(values[S_IOWAIT]));
-  // }
+  auto stats = Util::getStream((Path::basePath() + Path::statPath()));
+  auto timeVector = Util::getVectorOfLineWithMatchingFirstWord(stats, "cpu" + coreNumber);
+  timeVector.erase(timeVector.begin());
+  return timeVector;
 }
 
 auto ProcessParser::getSysRamPercent()
 {
-  // TODO:
-  // float ProcessParser::getSysRamPercent()
-  // {
-  //   string line;
-  //   string name1 = "MemAvailable:";
-  //   string name2 = "MemFree:";
-  //   string name3 = "Buffers:";
+  auto path = Path::basePath() + Path::memInfoPath();
+  auto contextWords = vector<string>{"MemFree:", "MemAvailable:", "Buffers:"};
 
-  //   string value;
-  //   int result;
-  //   ifstream stream = Util::getStream((Path::basePath() + Path::memInfoPath()));
-  //   float total_mem = 0;
-  //   float free_mem = 0;
-  //   float buffers = 0;
-  //   while (std::getline(stream, line))
-  //   {
-  //     if (total_mem != 0 && free_mem != 0)
-  //       break;
-  //     if (line.compare(0, name1.size(), name1) == 0)
-  //     {
-  //       istringstream buf(line);
-  //       istream_iterator<string> beg(buf), end;
-  //       vector<string> values(beg, end);
-  //       total_mem = stof(values[1]);
-  //     }
-  //     if (line.compare(0, name2.size(), name2) == 0)
-  //     {
-  //       istringstream buf(line);
-  //       istream_iterator<string> beg(buf), end;
-  //       vector<string> values(beg, end);
-  //       free_mem = stof(values[1]);
-  //     }
-  //     if (line.compare(0, name3.size(), name3) == 0)
-  //     {
-  //       istringstream buf(line);
-  //       istream_iterator<string> beg(buf), end;
-  //       vector<string> values(beg, end);
-  //       buffers = stof(values[1]);
-  //     }
-  //   }
-  //   //calculating usage:
-  //   return float(100.0 * (1 - (free_mem / (total_mem - buffers))));
-  // }
+  auto memFloats = vector<float>{};
+  for (auto word : contextWords)
+  {
+    auto stats = Util::getStream(path);
+    auto line = Util::getVectorOfLineWithMatchingFirstWord(stats, word);
+    memFloats.push_back(stof(line.at(1)));
+  }
+
+  auto num = 1 - (memFloats.at(0) / (memFloats.at(1) - memFloats.at(2)));
+  return 100.0f * num;
 }
 
-auto ProcessParser::printCpuStats(vector<string> values1, vector<string> values2){
-    //     string ProcessParser::printCpuStats(vector<string> values1, vector<string> values2){
-    //         /*
-    // Because CPU stats can be calculated only if you take measures in two different time,
-    // this function has two parameters: two vectors of relevant values.
-    // We use a formula to calculate overall activity of processor.
-    // */
-    //         float activeTime = getSysActiveCpuTime(values2) - getSysActiveCpuTime(values1);
-    // float idleTime = getSysIdleCpuTime(values2) - getSysIdleCpuTime(values1);
-    // float totalTime = activeTime + idleTime;
-    // float result = 100.0 * (activeTime / totalTime);
-    // return to_string(result);
-    // }
+auto ProcessParser::printCpuStats(vector<string> values1, vector<string> values2)
+{
+  float activeTime = getSysActiveCpuTime(values2) - getSysActiveCpuTime(values1);
+  float idleTime = getSysIdleCpuTime(values2) - getSysIdleCpuTime(values1);
+  float totalTime = activeTime + idleTime;
+  float result = 100.0 * (activeTime / totalTime);
+  return to_string(result);
 };
 
 #endif

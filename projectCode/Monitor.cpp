@@ -3,7 +3,7 @@
 
 int main(int argc, char const *argv[])
 {
-  auto cmd = ProcessParser::getTotalNumberOfProcesses();
+  auto cmd = ProcessParser::getSysRamPercent();
   cout << cmd << endl;
   return 0;
 }
