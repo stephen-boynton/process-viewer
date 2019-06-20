@@ -57,9 +57,10 @@ public:
   static auto getSysKernelVersion();
   static auto getTotalThreads();
   static auto getTotalNumberOfProcesses();
+  static auto getNumberOfCores();
   static auto getNumberOfRunningProcesses();
   static auto getOsName();
-  static auto printCpuStats(vector<string> values1, vector<string> values2);
+  static auto PrintCpuStats(vector<string> values1, vector<string> values2);
 };
 
 // ======================================================================================================
@@ -180,7 +181,7 @@ auto ProcessParser::getPidList()
 auto ProcessParser::getSysUpTime()
 {
   auto stats = Util::getStream(Path::basePath() + Path::statPath());
-  auto timeVector = Util::getVectorOfLineWithMatchingFirstWord(stats, "cpu");
+  auto timeVector = Util::getVectorOfLineWithMatchingWord(stats, "cpu");
   timeVector.erase(timeVector.begin());
   return ProcessParser::calculateTimeFromVector(timeVector);
 };
@@ -219,7 +220,7 @@ auto ProcessParser::getProcUpTime(string pid)
 auto ProcessParser::getProcUser(string pid)
 {
   auto stats = Util::getStream(ProcessParser::getPathToPidStatus(pid));
-  auto uuidVector = Util::getVectorOfLineWithMatchingFirstWord(stats, "Uid:");
+  auto uuidVector = Util::getVectorOfLineWithMatchingWord(stats, "Uid:");
   auto uuid = uuidVector.at(1);
   return ProcessParser::parseUserListForUserName(uuid);
 }
@@ -232,14 +233,21 @@ auto ProcessParser::getTotalThreads()
 auto ProcessParser::getTotalNumberOfProcesses()
 {
   auto stats = Util::getStream(Path::basePath() + Path::statPath());
-  auto processVector = Util::getVectorOfLineWithMatchingFirstWord(stats, "procs");
+  auto processVector = Util::getVectorOfLineWithMatchingWord(stats, "procs");
   return stoi(processVector.at(0));
 };
+
+auto ProcessParser::getNumberOfCores()
+{
+  auto cpuInfo = Util::getStream(Path::basePath() + Path::cpuInfoPath());
+  auto coreInfoVec = Util::getVectorOfLineWithMatchingWord(cpuInfo, "cores", 1);
+  return coreInfoVec.at(3);
+}
 
 auto ProcessParser::getNumberOfRunningProcesses()
 {
   auto stats = Util::getStream(Path::basePath() + Path::statPath());
-  auto processVector = Util::getVectorOfLineWithMatchingFirstWord(stats, "procs_running");
+  auto processVector = Util::getVectorOfLineWithMatchingWord(stats, "procs_running");
   return stoi(processVector.at(1));
 };
 
@@ -258,7 +266,7 @@ auto ProcessParser::getSysKernelVersion()
 auto ProcessParser::getSysCpuPercent(string coreNumber)
 {
   auto stats = Util::getStream((Path::basePath() + Path::statPath()));
-  auto timeVector = Util::getVectorOfLineWithMatchingFirstWord(stats, "cpu" + coreNumber);
+  auto timeVector = Util::getVectorOfLineWithMatchingWord(stats, "cpu" + coreNumber);
   timeVector.erase(timeVector.begin());
   return timeVector;
 }
@@ -272,7 +280,7 @@ auto ProcessParser::getSysRamPercent()
   for (auto word : contextWords)
   {
     auto stats = Util::getStream(path);
-    auto line = Util::getVectorOfLineWithMatchingFirstWord(stats, word);
+    auto line = Util::getVectorOfLineWithMatchingWord(stats, word);
     memFloats.push_back(stof(line.at(1)));
   }
 
@@ -280,7 +288,7 @@ auto ProcessParser::getSysRamPercent()
   return 100.0f * num;
 }
 
-auto ProcessParser::printCpuStats(vector<string> values1, vector<string> values2)
+auto ProcessParser::PrintCpuStats(vector<string> values1, vector<string> values2)
 {
   float activeTime = getSysActiveCpuTime(values2) - getSysActiveCpuTime(values1);
   float idleTime = getSysIdleCpuTime(values2) - getSysIdleCpuTime(values1);

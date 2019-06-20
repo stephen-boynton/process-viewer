@@ -28,7 +28,7 @@ public:
             Initial data for individual cores is set
             System data is set
             */
-    this->getOtherCores(getNumberOfCores());
+    this->getOtherCores(ProcessParser::getNumberOfCores());
     this->setLastCpuMeasures();
     this->setAttributes();
     this->osName = ProcessParser::getOsName();
@@ -119,7 +119,7 @@ void SysInfo::setCpuCoresStats()
   for (int i = 0; i < this->currentCpuCoresStats.size(); i++)
   {
     // after acquirement of data we are calculating every core percentage of usage
-    this->cores_stats[i] = ProcessParser::PrintCpuStats(this->lastCpuCoresStats[i], this->currentCpuCoresStats[i]);
+    this->coresStats[i] = ProcessParser::PrintCpuStats(this->lastCpuCoresStats[i], this->currentCpuCoresStats[i]);
   }
   this->lastCpuCoresStats = this->currentCpuCoresStats;
 }
@@ -145,7 +145,7 @@ vector<string> SysInfo::getCoresStats() const
   for (int i = 0; i < this->coresStats.size(); i++)
   {
     string temp = ("cpu" + to_string(i) + ": ");
-    float check = stof(this->cores_stats[i]);
+    float check = stof(this->coresStats[i]);
     if (!check || this->coresStats[i] == "nan")
     {
       return vector<string>();

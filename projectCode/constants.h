@@ -53,6 +53,10 @@ public:
   {
     return "/etc/passwd";
   }
+  static string cpuInfoPath()
+  {
+    return "cpuinfo";
+  }
 };
 
 #endif

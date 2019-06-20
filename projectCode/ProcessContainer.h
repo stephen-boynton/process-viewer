@@ -34,7 +34,7 @@ void ProcessContainer::refreshList()
 string ProcessContainer::printList()
 {
   std::string result = "";
-  for (auto i : _lists)
+  for (auto i : this->_list)
   {
     result += i.getProcess();
   }

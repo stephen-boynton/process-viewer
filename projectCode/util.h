@@ -23,7 +23,7 @@ public:
   static string convertIfstreamToString(ifstream &i);
   static vector<string> convertStringToVector(string s);
   static vector<string> convertIfstreamToVector(ifstream &i);
-  static auto getVectorOfLineWithMatchingFirstWord(ifstream &i, string word);
+  static auto getVectorOfLineWithMatchingWord(ifstream &i, string word, int location = 0);
 };
 
 string Util::convertToTime(long int input_seconds)
@@ -147,7 +147,7 @@ vector<string> Util::convertIfstreamToVector(ifstream &i)
   return Util::convertStringToVector(str);
 }
 
-auto Util::getVectorOfLineWithMatchingFirstWord(ifstream &i, string word)
+auto Util::getVectorOfLineWithMatchingWord(ifstream &i, string word, int location)
 {
   auto line = string{};
   auto lines = vector<vector<string>>{};
@@ -155,8 +155,8 @@ auto Util::getVectorOfLineWithMatchingFirstWord(ifstream &i, string word)
     lines.push_back(Util::convertStringToVector(line));
 
   for (auto l : lines)
-    if (l.at(0) == word)
+    if (l.at(location) == word)
       return l;
 
-  throw runtime_error("Unable to find line using provided word in stats");
+  throw runtime_error("Unable to find line using provided word in stream");
 }
