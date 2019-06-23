@@ -1,3 +1,5 @@
+#ifndef UTIL_H
+#define UTIL_H
 #include <string>
 #include <fstream>
 #include <iostream>
@@ -5,6 +7,10 @@
 #include <dirent.h>
 #include <errno.h>
 #include <vector>
+#include <algorithm>
+#include <sstream>
+#include <iterator>
+#include <math.h>
 
 using namespace std;
 
@@ -41,7 +47,7 @@ auto Util::convertToTime(long int input_seconds)
 // meaning: every 2% is one bar(|)
 auto Util::getProgressBar(string percent)
 {
-  string result = "0% ";
+  string result = to_string(roundf(stof(percent) * 100) / 100).substr(0, 4) + "%";
   int _size = 50;
   int boundaries = (stof(percent) / 100) * _size;
 
@@ -57,7 +63,7 @@ auto Util::getProgressBar(string percent)
     }
   }
 
-  result += " " + percent.substr(0, 5) + " /100%";
+  result += "   " + percent.substr(0, 5) + " /100%";
   return result;
 }
 
@@ -160,3 +166,4 @@ auto Util::getVectorOfLineWithMatchingWord(ifstream &i, string word, int locatio
 
   throw runtime_error("Unable to find line using provided word in stream");
 }
+#endif

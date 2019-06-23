@@ -36,7 +36,6 @@ private:
   static auto getPathToPidStat(string pid);
   static auto getPathToPidStatus(string pid);
   static auto getStatsFromPid(string pid);
-  static auto getLineFromPidStatus(string pid, int line);
   static auto getPidTime(vector<string> v);
   static auto calculateTimeFromVector(vector<string> times);
   static auto parseUserListForUserName(string uuid);
@@ -94,7 +93,7 @@ auto ProcessParser::getPidTime(vector<string> v)
 
 auto ProcessParser::calculateTimeFromVector(vector<string> time)
 {
-  auto total = 0;
+  auto total = float{0};
   for (auto s : time)
   {
     total += stof(s);
@@ -233,8 +232,8 @@ auto ProcessParser::getTotalThreads()
 auto ProcessParser::getTotalNumberOfProcesses()
 {
   auto stats = Util::getStream(Path::basePath() + Path::statPath());
-  auto processVector = Util::getVectorOfLineWithMatchingWord(stats, "procs");
-  return stoi(processVector.at(0));
+  auto processVector = Util::getVectorOfLineWithMatchingWord(stats, "processes");
+  return stoi(processVector.at(1));
 };
 
 auto ProcessParser::getNumberOfCores()
@@ -290,11 +289,10 @@ auto ProcessParser::getSysRamPercent()
 
 auto ProcessParser::PrintCpuStats(vector<string> values1, vector<string> values2)
 {
-  float activeTime = getSysActiveCpuTime(values2) - getSysActiveCpuTime(values1);
-  float idleTime = getSysIdleCpuTime(values2) - getSysIdleCpuTime(values1);
-  float totalTime = activeTime + idleTime;
-  float result = 100.0 * (activeTime / totalTime);
-  return to_string(result);
+  auto activeTime = float{getSysActiveCpuTime(values2) - getSysActiveCpuTime(values1)};
+  auto idleTime = float{getSysIdleCpuTime(values2) - getSysIdleCpuTime(values1)};
+  auto totalTime = float{activeTime + idleTime};
+  return to_string(float{100.0f * (activeTime / totalTime)});
 };
 
 #endif

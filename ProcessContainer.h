@@ -46,7 +46,7 @@ vector<string> ProcessContainer::getList()
   vector<string> values;
   for (int i = (this->_list.size() - 10); i < this->_list.size(); i++)
   {
-    values.push_back(this->_list[i].get_process());
+    values.push_back(this->_list[i].getProcess());
   }
   return values;
 }
