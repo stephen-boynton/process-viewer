@@ -32,6 +32,7 @@ private:
   static const int CSTIME_LOCATION = 16;
   static const int IDLE_TIME = 3;
   static const int IO_WAIT_TIME = 4;
+  static const int START_TIME_LOCATION = 21;
 
   static auto getPathToPidStat(string pid);
   static auto getPathToPidStatus(string pid);
@@ -87,7 +88,7 @@ auto ProcessParser::getPidTime(vector<string> v)
   auto start = v.begin() + UTIME_LOCATION;
   auto end = v.begin() + CSTIME_LOCATION;
   auto timeVector = vector<string>(start, end + 1);
-  timeVector.push_back(v.at(21));
+  timeVector.push_back(v.at(START_TIME_LOCATION));
   return timeVector;
 }
 
@@ -205,7 +206,7 @@ auto ProcessParser::getCpuPercent(string pid)
   // attempting to only have explicit conversions, not implicit
   auto freq = static_cast<float>(sysconf(_SC_CLK_TCK));
   auto seconds = static_cast<float>(uptime - (startTime / freq));
-  auto result = static_cast<float>(100.0 * ((totalTime / freq) / seconds));
+  auto result = static_cast<float>(100.0f * ((totalTime / freq) / seconds));
   return to_string(result);
 };
 
