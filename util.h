@@ -13,20 +13,20 @@ class Util
 {
 
 public:
-  static string convertToTime(long int input_seconds);
-  static string getProgressBar(string percent);
-  static ifstream getStream(string path);
+  static auto convertToTime(long int input_seconds);
+  static auto getProgressBar(string percent);
+  static auto getStream(string path);
   static void getFilesFromDirectory(string dir, vector<string> &files);
-  static bool is_number(const std::string &s);
-  static string getLineFromIfstream(ifstream &ifs, int lineNum);
-  static vector<string> filterOutNonNumbers(vector<string> v);
-  static string convertIfstreamToString(ifstream &i);
-  static vector<string> convertStringToVector(string s);
-  static vector<string> convertIfstreamToVector(ifstream &i);
+  static auto is_number(const std::string &s);
+  static auto getLineFromIfstream(ifstream &ifs, int lineNum);
+  static auto filterOutNonNumbers(vector<string> v);
+  static auto convertIfstreamToString(ifstream &i);
+  static auto convertStringToVector(string s);
+  static auto convertIfstreamToVector(ifstream &i);
   static auto getVectorOfLineWithMatchingWord(ifstream &i, string word, int location = 0);
 };
 
-string Util::convertToTime(long int input_seconds)
+auto Util::convertToTime(long int input_seconds)
 {
   long minutes = input_seconds / 60;
   long hours = minutes / 60;
@@ -39,7 +39,7 @@ string Util::convertToTime(long int input_seconds)
 // constructing string for given percentage
 // 50 bars is uniformly streched 0 - 100 %
 // meaning: every 2% is one bar(|)
-string Util::getProgressBar(string percent)
+auto Util::getProgressBar(string percent)
 {
   string result = "0% ";
   int _size = 50;
@@ -62,7 +62,7 @@ string Util::getProgressBar(string percent)
 }
 
 // wrapper for creating streams
-ifstream Util::getStream(string path)
+auto Util::getStream(string path)
 {
   ifstream stream(path);
   if (!stream)
@@ -90,7 +90,7 @@ void Util::getFilesFromDirectory(string dir, vector<string> &files)
   closedir(dp);
 }
 // from https://stackoverflow.com/questions/4654636/how-to-determine-if-a-string-is-a-number-with-c
-bool Util::is_number(const std::string &s)
+auto Util::is_number(const std::string &s)
 {
   std::string::const_iterator it = s.begin();
   while (it != s.end() && std::isdigit(*it))
@@ -98,7 +98,7 @@ bool Util::is_number(const std::string &s)
   return !s.empty() && it == s.end();
 }
 
-string Util::getLineFromIfstream(ifstream &ifs, int lineNum)
+auto Util::getLineFromIfstream(ifstream &ifs, int lineNum)
 {
   string line;
   for (int i = 0; i <= lineNum; i++)
@@ -109,7 +109,7 @@ string Util::getLineFromIfstream(ifstream &ifs, int lineNum)
   return line;
 }
 
-vector<string> Util::filterOutNonNumbers(vector<string> v)
+auto Util::filterOutNonNumbers(vector<string> v)
 {
   vector<string> onlyNumbers(v.size());
   auto it = copy_if(v.begin(), v.end(), onlyNumbers.begin(), [](string f) { return Util::is_number(f); });
@@ -118,7 +118,7 @@ vector<string> Util::filterOutNonNumbers(vector<string> v)
 }
 // implementation based on example shown here:
 // https://stackoverflow.com/questions/2602013/read-whole-ascii-file-into-c-stdstring
-string Util::convertIfstreamToString(ifstream &i)
+auto Util::convertIfstreamToString(ifstream &i)
 {
   string str;
   i.seekg(0, ios::end);
@@ -132,7 +132,7 @@ string Util::convertIfstreamToString(ifstream &i)
 
 // based on this implementation
 // https://stackoverflow.com/questions/5607589/right-way-to-split-an-stdstring-into-a-vectorstring
-vector<string> Util::convertStringToVector(string s)
+auto Util::convertStringToVector(string s)
 {
   stringstream ss(s);
   istream_iterator<string> begin(ss);
@@ -141,7 +141,7 @@ vector<string> Util::convertStringToVector(string s)
   return vectorOfStrings;
 };
 
-vector<string> Util::convertIfstreamToVector(ifstream &i)
+auto Util::convertIfstreamToVector(ifstream &i)
 {
   string str = Util::convertIfstreamToString(i);
   return Util::convertStringToVector(str);
